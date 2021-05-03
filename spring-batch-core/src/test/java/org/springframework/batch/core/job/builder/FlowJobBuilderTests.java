@@ -158,7 +158,7 @@ public class FlowJobBuilderTests {
 	}
 
 	@Test
-	public void testNestedSplits() {
+	public void testNestedSplitsWithSingleThread() {
 		SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
 		taskExecutor.setConcurrencyLimit(1);
 

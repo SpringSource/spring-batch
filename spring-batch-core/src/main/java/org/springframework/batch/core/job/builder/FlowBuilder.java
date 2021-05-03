@@ -310,9 +310,9 @@ public class FlowBuilder<Q> {
 		return result;
 	}
 
-	private SplitState createState(Collection<Flow> flows, TaskExecutor executor) {
+	private SplitState createState(Collection<Flow> flows, TaskExecutor executor, SplitState parentSplit) {
 		if (!states.containsKey(flows)) {
-			states.put(flows, new SplitState(flows, prefix + "split" + (splitCounter++)));
+			states.put(flows, new SplitState(flows, prefix + "split" + (splitCounter++), parentSplit));
 		}
 		SplitState result = (SplitState) states.get(flows);
 		if (executor != null) {
@@ -647,6 +647,11 @@ public class FlowBuilder<Q> {
 			String name = "split" + (parent.splitCounter++);
 			State one = parent.currentState;
 
+			if (one instanceof SplitState) {
+				parent.currentState = parent.createState(list, executor, (SplitState) one);
+				return parent;
+			}
+
 			if (!(one == null || one instanceof FlowState)) {
 				FlowBuilder<Flow> stateBuilder = new FlowBuilder<>(name + "_0");
 				stateBuilder.currentState = one;
@@ -655,7 +660,7 @@ public class FlowBuilder<Q> {
 				list.add(((FlowState) one).getFlows().iterator().next());
 			}
 
-			parent.currentState = parent.createState(list, executor);
+			parent.currentState = parent.createState(list, executor, null);
 			return parent;
 		}
 
