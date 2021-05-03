@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2020 the original author or authors.
+ * Copyright 2012-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -625,7 +625,7 @@ public class FlowBuilder<Q> {
 
 		private final FlowBuilder<Q> parent;
 
-		private TaskExecutor executor;
+		private final TaskExecutor executor;
 
 		/**
 		 * @param parent the parent builder
@@ -645,22 +645,17 @@ public class FlowBuilder<Q> {
 		public FlowBuilder<Q> add(Flow... flows) {
 			Collection<Flow> list = new ArrayList<>(Arrays.asList(flows));
 			String name = "split" + (parent.splitCounter++);
-			int counter = 0;
 			State one = parent.currentState;
-			Flow flow = null;
+
 			if (!(one == null || one instanceof FlowState)) {
-				FlowBuilder<Flow> stateBuilder = new FlowBuilder<>(name + "_" + (counter++));
+				FlowBuilder<Flow> stateBuilder = new FlowBuilder<>(name + "_0");
 				stateBuilder.currentState = one;
-				flow = stateBuilder.build();
+				list.add(stateBuilder.build());
 			} else if (one instanceof FlowState && parent.states.size() == 1) {
 				list.add(((FlowState) one).getFlows().iterator().next());
 			}
 
-			if (flow != null) {
-				list.add(flow);
-			}
-			State next = parent.createState(list, executor);
-			parent.currentState = next;
+			parent.currentState = parent.createState(list, executor);
 			return parent;
 		}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package org.springframework.batch.core.job.flow.support.state;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
@@ -46,7 +45,7 @@ public class SplitState extends AbstractState implements FlowHolder {
 
 	private TaskExecutor taskExecutor = new SyncTaskExecutor();
 
-	private FlowExecutionAggregator aggregator = new MaxValueFlowExecutionAggregator();
+	private final FlowExecutionAggregator aggregator = new MaxValueFlowExecutionAggregator();
 
 	/**
 	 * @param flows collection of {@link Flow} instances.
@@ -88,12 +87,7 @@ public class SplitState extends AbstractState implements FlowHolder {
 
 		for (final Flow flow : flows) {
 
-			final FutureTask<FlowExecution> task = new FutureTask<>(new Callable<FlowExecution>() {
-                @Override
-                public FlowExecution call() throws Exception {
-                    return flow.start(executor);
-                }
-            });
+			final FutureTask<FlowExecution> task = new FutureTask<>(() -> flow.start(executor));
 
 			tasks.add(task);
 
