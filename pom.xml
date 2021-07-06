@@ -63,6 +63,7 @@
 		<spring-data-commons.version>2.6.0-SNAPSHOT</spring-data-commons.version>
 		<spring-data-jpa.version>2.6.0-SNAPSHOT</spring-data-jpa.version>
 		<spring-data-mongodb.version>3.3.0-SNAPSHOT</spring-data-mongodb.version>
+		<spring-data-redis.version>2.5.2-SNAPSHOT</spring-data-redis.version>
 		<spring-kafka.version>2.7.4-SNAPSHOT</spring-kafka.version>
 		<spring-amqp.version>2.4.0-SNAPSHOT</spring-amqp.version>
 		<spring-ldap.version>2.3.5.BUILD-SNAPSHOT</spring-ldap.version>
