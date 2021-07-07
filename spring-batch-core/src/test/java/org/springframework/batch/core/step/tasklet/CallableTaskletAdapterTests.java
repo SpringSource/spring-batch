@@ -16,7 +16,6 @@
 package org.springframework.batch.core.step.tasklet;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.util.concurrent.Callable;
 
@@ -25,28 +24,28 @@ import org.springframework.batch.repeat.RepeatStatus;
 
 public class CallableTaskletAdapterTests {
 
-	private CallableTaskletAdapter adapter = new CallableTaskletAdapter();
+	@Test
+	public void testExecuteWithConstructorInjection() throws Exception {
+		CallableTaskletAdapter adapter = new CallableTaskletAdapter(() -> RepeatStatus.FINISHED);
+		assertEquals(RepeatStatus.FINISHED, adapter.execute(null, null));
+	}
 
 	@Test
-	public void testHandle() throws Exception {
+	public void testExecuteWithSetterInjection() throws Exception {
+		CallableTaskletAdapter adapter = new CallableTaskletAdapter();
 		adapter.setCallable(new Callable<RepeatStatus>() {
 			@Override
 			public RepeatStatus call() throws Exception {
 				return RepeatStatus.FINISHED;
 			}
 		});
-		assertEquals(RepeatStatus.FINISHED, adapter.execute(null,null));
+		assertEquals(RepeatStatus.FINISHED, adapter.execute(null, null));
 	}
 
-	@Test
+	@Test(expected = IllegalArgumentException.class)
 	public void testAfterPropertiesSet() throws Exception {
-		try {
-			adapter.afterPropertiesSet();
-			fail("Expected IllegalArgumentException");
-		}
-		catch (IllegalArgumentException e) {
-			// expected
-		}
+		CallableTaskletAdapter adapter = new CallableTaskletAdapter();
+		adapter.afterPropertiesSet();
 	}
 
 }
