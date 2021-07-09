@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2019 the original author or authors.
+ * Copyright 2006-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.springframework.batch.core.repository.dao;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -23,8 +24,8 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Date;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -61,6 +62,7 @@ import org.springframework.util.Assert;
  * @author Michael Minella
  * @author Mahmoud Ben Hassine
  * @author Dimitrios Liapis
+ * @author Philippe Marschall
  */
 public class JdbcJobExecutionDao extends AbstractJdbcBatchMetadataDao implements JobExecutionDao, InitializingBean {
 
@@ -321,42 +323,53 @@ public class JdbcJobExecutionDao extends AbstractJdbcBatchMetadataDao implements
 	 */
 	private void insertJobParameters(Long executionId, JobParameters jobParameters) {
 
-		for (Entry<String, JobParameter> entry : jobParameters.getParameters()
-				.entrySet()) {
-			JobParameter jobParameter = entry.getValue();
-			insertParameter(executionId, jobParameter.getType(), entry.getKey(),
-					jobParameter.getValue(), jobParameter.isIdentifying());
+		if (jobParameters.isEmpty()) {
+			return;
 		}
-	}
 
+		getJdbcTemplate().batchUpdate(getQuery(CREATE_JOB_PARAMETERS), jobParameters.getParameters().entrySet(), 100, (ps, entry) -> {
+			JobParameter jobParameter = entry.getValue();
+			String key = entry.getKey();
+			ParameterType type = jobParameter.getType();
+			Object value = jobParameter.getValue();
+			boolean identifying = jobParameter.isIdentifying();
+			setJobParameters(executionId, type, key, value, identifying, ps);
+		});
+	}
+	
 	/**
 	 * Convenience method that inserts an individual records into the
 	 * JobParameters table.
 	 */
-	private void insertParameter(Long executionId, ParameterType type, String key,
-			Object value, boolean identifying) {
-
-		Object[] args = new Object[0];
-		int[] argTypes = new int[] { Types.BIGINT, Types.VARCHAR,
-				Types.VARCHAR, Types.VARCHAR, Types.TIMESTAMP, Types.BIGINT,
-				Types.DOUBLE, Types.CHAR };
-
-		String identifyingFlag = identifying? "Y":"N";
-
+	private static void setJobParameters(Long executionId, ParameterType type, String key,
+					Object value, boolean identifying, PreparedStatement preparedStatement)
+									throws SQLException {
+		
+		preparedStatement.setLong(1, executionId);
+		preparedStatement.setString(2, key);
+		preparedStatement.setString(3, type.toString());
 		if (type == ParameterType.STRING) {
-			args = new Object[] { executionId, key, type, value, new Timestamp(0L),
-					0L, 0D, identifyingFlag};
-		} else if (type == ParameterType.LONG) {
-			args = new Object[] { executionId, key, type, "", new Timestamp(0L),
-					value, new Double(0), identifyingFlag};
-		} else if (type == ParameterType.DOUBLE) {
-			args = new Object[] { executionId, key, type, "", new Timestamp(0L), 0L,
-					value, identifyingFlag};
-		} else if (type == ParameterType.DATE) {
-			args = new Object[] { executionId, key, type, "", value, 0L, 0D, identifyingFlag};
+			preparedStatement.setString(4, (String) value);
+		} else {
+			preparedStatement.setString(4, "");
 		}
-
-		getJdbcTemplate().update(getQuery(CREATE_JOB_PARAMETERS), args, argTypes);
+		if (type == ParameterType.DATE) {
+			preparedStatement.setTimestamp(5, new Timestamp(((Date) value).getTime()));
+		} else {
+			preparedStatement.setTimestamp(5, new Timestamp(0L));
+		}
+		if (type == ParameterType.LONG) {
+			preparedStatement.setLong(6, (Long) value);
+		} else {
+			preparedStatement.setLong(6, 0L);
+		}
+		if (type == ParameterType.DOUBLE) {
+			preparedStatement.setDouble(7, (Double) value);
+		} else {
+			preparedStatement.setDouble(7, 0.0d);
+		}
+		String identifyingFlag = identifying ? "Y" : "N";
+		preparedStatement.setString(8, identifyingFlag);
 	}
 
 	/**
